@@ -1,0 +1,1176 @@
+# Explore and Summarize Data -  Prosper Loan 
+
+###  by Rami Salman
+========================================================
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(knitr)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+df<- read.csv('prosperLoanData.csv')
+```
+
+>This data set contains 113,937 loans with 81 variables on each loan, including 
+loan amount, borrower rate (or interest rate), current loan status, borrower 
+income, borrower employment status, borrower credit history, and the latest 
+payment information.
+
+>I will ask my own questions about this data set. There are MANY variables in 
+this data set and I will explore between 10- 15 variables in the this analysis.
+
+#1 -  data cleaning: 
+### 1.1 -  drop the keys and ids columns because no need of them in the analysis
+process , this keys are: ListingKey, ListingNumber,LoanKey,MemberKey .
+
+
+```{r echo=FALSE}
+df <-  subset(df, select = - c(ListingKey, ListingNumber,LoanKey,MemberKey))
+
+```
+## 1.2 -  now i will search about n/a valus:
+```{r echo=FALSE}
+colSums(is.na(df))
+
+```
+
+> as a result of the  previous step , their is a lot of columns with very large
+number of n/a (more than 2000 instances! ) , i will drop theis columns. theis 
+columns includs:
+EstimatedEffectiveYield, EstimatedLoss , EstimatedReturn , ProsperRating..Alpha.
+, CurrentCreditLines , OpenCreditLines , AmountDelinquent, 
+PublicRecordsLast12Months , RevolvingCreditBalance, BankcardUtilization , 
+AvailableBankcardCredit , TotalTrades , TradesNeverDelinquent..percentage., 
+TradesOpenedLast6Months ,DebtToIncomeRatio, TotalProsperLoans, 
+TotalProsperPaymentsBilled , OnTimeProsperPayments , 
+ProsperPaymentsLessThanOneMonthLate , ProsperPaymentsOneMonthPlusLate , 
+ProsperPrincipalBorrowed , ProsperPrincipalOutstanding , 
+ScorexChangeAtTimeOfListing,OpenCreditLines, CurrentCreditLines, 
+CreditScoreRangeUpper,EstimatedReturn,EstimatedLoss,
+LoanFirstDefaultedCycleNumber.
+
+```{r echo=FALSE, Univariate_Plots}
+
+
+colSums(is.na(df))
+
+df <-  subset(df, select = - c(EstimatedEffectiveYield, EstimatedLoss , 
+                               EstimatedReturn , ProsperRating..Alpha.  , 
+                               CurrentCreditLines , OpenCreditLines ,
+                               AmountDelinquent, PublicRecordsLast12Months , 
+                               RevolvingCreditBalance, BankcardUtilization , 
+                               AvailableBankcardCredit , TotalTrades ,
+                               TradesNeverDelinquent..percentage., 
+                               TradesOpenedLast6Months ,DebtToIncomeRatio, 
+                               TotalProsperLoans, TotalProsperPaymentsBilled ,
+                               OnTimeProsperPayments , 
+                               ProsperPaymentsLessThanOneMonthLate ,
+                               ProsperPaymentsOneMonthPlusLate , 
+                               ProsperPrincipalBorrowed , 
+                               ProsperPrincipalOutstanding , 
+                               ScorexChangeAtTimeOfListing ,OpenCreditLines,
+                               CurrentCreditLines, CreditScoreRangeUpper,
+                               EstimatedReturn,EstimatedLoss, 
+                               LoanFirstDefaultedCycleNumber ))
+```
+
+>in the previous step i droped the columns with high number of n/a , so it 
+remains some cells with n/a's 
+>now i will drop the n/a rows and save them in new record called new_df
+
+```{r echo=FALSE}
+new_df <-  df %>% drop_na()
+#count(new_df)
+
+#colSums(is.na(new_df))
+```
+>after the previous cleaning steps, our new data frame contains 50 feature and 
+8453 observation we will work on them. The new data set contains data from 2009.
+
+# 2-  Univariate Analysis
+
+## 2.1-  What is the structure of your dataset?
+```{r echo=FALSE}
+str(new_df)
+```
+
+## 2.2-  What is/are the main feature(s) of interest in your dataset?
+
+-  ListingCreationDate: The date the listing was created.
+
+-  Term: The length of the loan expressed in months.
+
+-  LoanStatus : The current status of the loan: Cancelled, Chargedoff,Completed,
+Current, Defaulted, FinalPaymentInProgress, PastDue. The PastDue status will be 
+accompanied by a delinquency bucket.
+
+-  BorrowerRate: The Borrower's interest rate for this loan.
+
+-  ProsperRating (numeric):  The Prosper Rating assigned at the time the listing
+was created: 0 -  N/A, 1 HR, 2 -  E, 3 -  D, 4 -  C, 5 -  B, 6 -  A, 7 -  AA. Applicable for loans originated after July 2009.
+
+-  ListingCategory : The category of the listing that the borrower selected when
+posting their listing: 0  Not Available, 1 -  Debt Consolidation, 
+2 -  Home Improvement, 3 -  Business, 4 -  Personal Loan, 5 -  Student Use, 
+6 -  Auto, 7-  Other, 8 -  Baby&Adoption, 9 -  Boat, 10 -  Cosmetic Procedure, 
+11 -  Engagement Ring, 12 -  Green Loans, 13 -  Household Expenses, 
+14 -  Large Purchases, 15 -  Medical/Dental, 16 -  Motorcycle, 17 -  RV, 
+18 -  Taxes, 19 -  Vacation, 20 -  Wedding Loans .
+
+-  EmploymentStatus:  The employment status of the borrower at the time they 
+posted the listing.
+
+-  EmploymentStatusDuration: The length in months of the employment status at 
+the time the listing was created.
+
+-  CurrentlyInGroup: Specifies whether or not the Borrower was in a group at the
+time the listing was created.
+
+-  LoanOriginalAmount: The origination amount of the loan.
+
+-  LoanOriginationQuarter: The quarter in which the loan was originated.
+
+- prosperScore: A custom risk score built using historical Prosper data. The 
+score ranges from 1-10, with 10 being the best, or lowest risk score. Applicable
+for loans originated after July 2009.
+
+- IncomeRange : The income range of the borrower at the time the listing was 
+created.
+
+## 2.3 proposed questions about the selected features:
+
+>1. for the LoanStatus feature , what is the count of each LoanStatus? and 
+distribution of them?
+>2. what is the distribution of prosperScore ? 
+>3. what is the Distribution of BorrowerRate ?
+>4 what is the ProsperRating distribution?
+>5. distribution of loans with the days:
+>6. what is the distribution of loans with the months ?
+>7. what is the Distribution of ListingCategory?
+>8. what is the Distribution of EmploymentStatus?
+>9. what is the Distribution  EmploymentStatusDuration ?
+>10. what is the distribution of IsBorrowerHomeowner?
+>11. what is the distribution of CurrentlyInGroup ?
+>12. Distribution of LoanOriginalAmount ?
+>13. what is the Distribution of LoanOriginationQuarter?
+>14. what is the distribution of terms?
+>15. what is the distibution of income range ?
+>16. What's the distribution of BorrowerState?
+
+##2.4.1- 	for the LoanStatus feature , what is the count of each LoanStatus?
+and distribution of them?
+```{r  echo=FALSE ,fig.width=13, fig.height=7 }
+
+Loan_status_groups=group_by(new_df,LoanStatus)
+Loan_status_groups=count(Loan_status_groups)
+Loan_status_groups
+
+library(ggplot2)
+
+new_df %>% 
+	arrange(LoanStatus = LoanStatus ) %>%
+	ggplot(aes(x=LoanStatus)) + geom_bar() +coord_flip()
+
+```
+
+> The loan status is most important feautre that is an indicator to the loan 
+sucsess . As a result of status group visualization , the loan status with the 
+highest count is the current status followed by completed status. I notice that
+the categories are more detailed , so I'm going to group the similar groups 
+togother as the following: 
+  Defaulted: Chargedoff, Defaulted,Cancelled ,
+  Current : Current , FinalPaymentInProgress,
+  completed for the completed status,
+  and the other values in the Past Due group.
+  
+>the new groups plotted in the next cell:
+
+```{r echo=FALSE}
+new_df <-  new_df %>%
+  mutate(LoanStatusGroup = ifelse(LoanStatus %in% 
+                                  c("Chargedoff", "Defaulted","Cancelled"), 
+                                  "Defaulted",
+                 
+                           ifelse(LoanStatus %in%
+                                  c("Current", "FinalPaymentInProgress"), 
+                                  "Current",
+                           ifelse(LoanStatus %in%
+                                  c("Completed"), "Completed",
+                                  "Past Due"))))
+
+new_df %>% 
+	arrange(LoanStatusGroup = LoanStatusGroup )  %>%
+	ggplot(aes(x=LoanStatusGroup)) + geom_bar() 
+```
+
+>After new groups created , it still that current status is the highest group , 
+then completed status then the defualted . In the bivariate exploration step we 
+will plot the groups of completed and defulted with the other features .
+
+
+### 2.4.2 -  what is the distribution of prosperScore ? 
+```{r  echo=FALSE }
+new_df %>% 
+	ggplot(aes(x=ProsperScore)) + geom_histogram( color='orange',alpha=0.7,
+	                                              binwidth= 1 ) +   
+  scale_x_continuous(breaks = seq(0,12,1))
+```
+
+* The highest prosperScores are between 4 and 8 .
+
+### 2.4.3- 	what is the Distribution of BorrowerRate ?
+
+```{r  echo=FALSE}
+new_df %>% 
+	ggplot(aes(x=BorrowerRate)) + geom_histogram(fill='orange', color='red'
+	                                             ,alpha=0.7,binwidth = 0.012)
+
+```
+
+* BorrowerRate is about to normal distribution with some exeptions.
+
+### 2.4.4- 	what is the ProsperRating distribution?
+```{r echo=FALSE}
+
+new_df$ProsperRating = dplyr::recode(
+    new_df$ProsperRating..numeric.,
+    "0"="N/A",
+    "1"="HR",
+    "2"="E",
+    "3"="D",
+    "4"="C",
+    "5"="B",
+    "6"="A",
+    "7"="AA",
+    .default = "0") 
+new_df$ProsperRating=new_df$ProsperRating %>% fct_infreq()
+
+new_df %>% ggplot(aes(ProsperRating)) + geom_bar() 
+
+```
+```{r echo=FALSE}
+
+```
+>The highest category prosperRating is for C  and the lowest one is for AA , 
+note that no N/A category because I've already dropped them in the data cleaning
+step.
+
+>Now we will find the distribution of loans among the history (forwarding of
+days).
+
+### 2.4.5 -  distribution of loans with the days:
+
+```{r echo=FALSE}
+new_df %>% 
+	count(Day = as.Date(ListingCreationDate) ,binwidth=12,stat='count') %>% 
+	ggplot(aes(Day, n)) +
+	geom_col()
+```
+
+* we see that the number of loans increases by forwarding the days , that means 
+improvement of company/bank work.
+
+### 2.4.6 -  what is the distribution of loans with the months ?
+
+```{r echo=FALSE}
+new_df %>% 
+	count(month = as.numeric(as.factor(months(as.Date(ListingCreationDate))))) %>% 
+	ggplot(aes(month, n),binwidth=2) + 
+  scale_x_continuous(breaks = seq(1,12,1))+
+	geom_col()
+```
+
+* we notice that the number of loans changes among different months. In general
+some of the summer months (July , Aughest , Septemper) and Janury have number of
+loans less than the others. On the other hand , spring months (March,April,May)
+and some of winter months (November and December ) have number of loans higher 
+than the others. 
+
+###2.4.7- 	what is the Distribution of ListingCategory?
+```{r echo=FALSE}
+library(tidyverse)
+library(forcats)
+packageVersion("dplyr")
+
+
+new_df$ListingCategory = dplyr::recode(
+    new_df$ListingCategory..numeric.,
+    "0"="Not Available",
+    "1"="Debt Consolidation",
+    "2"="Home Improvement",
+    "3"="Business",
+    "4"="Personal Loan",
+    "5"="Student Use",
+    "6"="Auto",
+    "7"="Other",
+    "8"="Baby&Adoption",
+    "9"="Boat",
+    "10"="Cosmetic Procedure",
+    "11"="Engagement Ring",
+    "12"="Green Loans",
+    "13"="Household Expenses",
+    "14"="Large Purchases",
+    "15"="Medical/Dental",
+    "16"="Motorcycle",
+    "17"="RV",
+    "18"="Taxes" ,
+    "19"="Vacation",
+    "20"="Wedding Loans",
+
+    .default = "0") 
+
+new_df$ListingCategory=new_df$ListingCategory%>% fct_infreq()
+new_df %>% ggplot(aes(ListingCategory)) + geom_bar() + coord_flip()
+
+
+```
+
+* It's not surprising that the highest category count of loans is debt 
+consolidation ,it seems that it's count more than the summation count of all 
+other categories!this is because this category indivsuals need money permenantly
+
+### 2.4.8- 	what is the Distribution of EmploymentStatus?
+
+```{r echo=FALSE}
+
+
+new_df %>% 
+	mutate(EmploymentStatus = EmploymentStatus  %>% fct_infreq()  )%>%
+	ggplot(aes(x=EmploymentStatus)) + geom_bar() 
+
+```
+
+*Employed ones have the highest count , this is because the employed have more 
+stability than the others and have more dealing with the banks.
+
+###2.4.9- 	what is the Distribution  EmploymentStatusDuration ?
+* note : EmploymentStatusDuration is stored in months , so i divided it by 12 
+to get the number of years instead and saved it in new column named 
+EmploymentStatusDurationYears.
+
+```{r echo=FALSE,fig.width=12}
+new_df$EmploymentStatusDurationYears=new_df$EmploymentStatusDuration/12
+new_df %>% 
+	ggplot(aes(x=EmploymentStatusDurationYears)) + 
+  geom_histogram(color='orange' ,alpha=0.2 ,binwidth= 0.8 )+
+  labs(x='employment status duration in years') +
+  scale_x_continuous(breaks = seq(0,60,10))
+```
+
+-  see the following summary of EmploymentStatusDuration(years)
+
+```{r  echo=FALSE }
+summary(new_df$EmploymentStatusDurationYears)
+```
+
+-  as a result of the previous plots and summary , EmploymentStatusDuration 
+distribution is skewed right! and quarter of employees have duration of 2.5 
+years and half of them less than 6.167 years duration. That means younger 
+employees(with small employment status duration) have loans more than the others
+
+### 2.4.10- 	what is the distribution of IsBorrowerHomeowner?
+
+```{r echo=FALSE}
+new_df %>% 
+	arrange( IsBorrowerHomeowner )%>%
+	ggplot(aes(x=IsBorrowerHomeowner)) + geom_bar() 
+```
+
+* indivisuals with borrower home owner have loans a little bit higher than the 
+others.
+
+### 2.4.11- 	what is the distribution of CurrentlyInGroup ?
+
+```{r echo=FALSE}
+new_df %>% 
+	arrange( CurrentlyInGroup )%>%
+	ggplot(aes(x=CurrentlyInGroup)) + geom_bar() 
+```
+
+* indivisual who not currently in group have loans extremly higher than the 
+others.
+
+### 2.4.12- 	Distribution of LoanOriginalAmount ?
+
+```{r  echo=FALSE , fig.width=14}
+new_df %>% 
+	ggplot(aes(x=LoanOriginalAmount)) + 
+  geom_histogram( color='orange',alpha=0.1,binwidth= 200)+
+  scale_x_continuous(breaks = seq(0,35000,1000))+
+  coord_flip()
+```
+-  It seems abviously that loan amounts are integers (they have peaks) like ,
+4000 , 10,000, 15,000 , 20,000 and other integers , and the loans of 4000 have
+the highest count. 
+
+### 2.4.13- 	what is the Distribution of LoanOriginationQuarter?
+
+```{r  echo=FALSE , fig.width=12}
+new_df %>% 
+	mutate(LoanOriginationQuarter  )%>%
+	ggplot(aes(x=LoanOriginationQuarter)) + geom_bar() 
+```
+
+* This result confirms the result of question 2.5 , which concludes that by 
+forwarding days/years number of loan increases that is a good indicator of 
+improving the bank work!
+
+### 2.4.14 -  what is the distribution of terms?
+
+```{r  echo=FALSE }
+new_df %>% 
+	ggplot(aes(x=Term)) + geom_histogram( color='orange',alpha=0.7,binwidth= 5 ) +   scale_x_continuous(breaks = seq(0,60,12))
+
+```
+
+* It is abvious that terms(length of loan expressed in months) distributed in
+three terms : 10,35,60 , and most of terms are with about 35 months.
+
+### 2.4.15 -  what is the distibution of income range ?
+
+```{r echo=FALSE ,fig.width=8}
+
+new_df %>% 
+	mutate(IncomeRange=IncomeRange  %>%  fct_infreq() %>% fct_rev() )%>%
+	ggplot(aes(x=IncomeRange)) + geom_bar() +coord_flip()
+
+```
+
+* For the employees , the highest count of loans is for the 50,000 -  74,999 and
+25,000 -  49,999 income ranges and the not employed have small count .
+
+### 2.4.16-  What's the distribution of BorrowerState?
+
+```{r fig.width=13}
+new_df %>% 
+	mutate(BorrowerState=BorrowerState  %>%  fct_infreq() )%>%
+	ggplot(aes(x=BorrowerState)) + geom_bar()
+```
+
+>The state with the highest number of loans is CA then NY,TX,FL . On the other 
+hand, the states with the lowest number of loans are SD , VT , AK and WY.
+
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+I think year of the loan , IncomeVerifiable ,so i will investegate them in 
+bivariate section .
+
+### Did you create any new variables from existing variables in the dataset?
+
+yes ,I created many new variables as the following:
+1.  In question 2.1 , I grouped the loanStatus in more generic group , I named 
+it by LoanStatusGroup .
+
+2.  I extracted the month from ListingCreatenDate and ploted the distribution of 
+them in 2.5 question.
+
+3.  In question 2.7 , I created a new column named LisitingCategory that mapping
+the LisitingCategory..numeric. to it's name , like (0 -  Not Available, 1 -  
+Debt Consolidation, 2.  Home Improvement, ...etc).
+
+4.  In question 2.9 , I created a new column named EmploymentStatusDurationYears
+by dividing EmploymentStatusDuration (months) by 12 .
+
+5.  In Question  2.14 , I created a new column named ProsperRating that mapping
+the ProsperRating..numeric. to it's name , like (0 -  N/A, 1 -  HR, 
+2 -  E, ... etc).
+
+### Of the features you investigated, were there any unusual distributions?
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+
+  The employedStatusDuration plot is skewed right (not normally distributed) and
+ProsperScore is near to normal distribution but with no peak!
+  Yes I Performed some operations to tidy data , before I started the 
+visualization and exploration of data , I dropped unnecissary columns and the
+columns with high number of NA's, then I droped the remaining NA rows . Then
+when I started the exploration step , I created  many new columns of the 
+existing columns , I explained this step in the previous question.
+
+#3 Bivariate Plots Section
+
+>In this part , I will explore the correlation coefficient between some numeric variables and visualize the strong relationships(high correlation). For the categorical variables , I will split  the categories and explore them. and For the date , i will explore different variables among date.
+
+##3.1 - find the correlations:
+
+###3.1.1- EmploymentStatusDurationYears and LoanOriginalAmount :
+
+
+```{r echo=FALSE}
+library(dplyr)
+library(ggplot2) 
+with(new_df,cor.test(EmploymentStatusDurationYears,LoanOriginalAmount,method =
+                       'pearson'))
+```
+
+* The correlation between EmploymentStatusDuration and LoanOriginalAmount is 
+weak.
+
+###3.1.2 -  correlation between ProsperRating..numeric. and BorrowerRate . 
+
+```{r echo=FALSE}
+with(new_df,cor.test(ProsperRating..numeric.,BorrowerRate ,method = 'pearson'))
+
+```
+
+>Strong negative relation !
+
+```{r echo=FALSE}
+ggplot(aes(x=ProsperRating..numeric. , y=BorrowerRate),
+      data=new_df)+ geom_point(alpha=0.05,position = position_jitter(h=0),color='orange')+geom_smooth(method = 'lm')
+```
+
+###3.1.3 -  ProsperRating..numeric. and LoanOriginalAmount 
+
+```{r echo=FALSE}
+with(new_df,cor.test(ProsperRating..numeric.,LoanOriginalAmount  ,
+                     method = 'pearson'))
+
+```
+>correlation between ProsperRating..numeric. and LoanOriginalAmount is medium ,
+see the following visualization
+
+```{r  echo=FALSE }
+ggplot(aes(x=ProsperRating..numeric. , y=LoanOriginalAmount),
+      data=new_df)+ geom_point(alpha=0.05,position = position_jitter(h=0),
+                               color='orange')
+```
+
+###3.1.4-  EmploymentStatusDurationYears and LoanOriginalAmount
+
+```{r  echo=FALSE }
+with(new_df,cor.test(EmploymentStatusDurationYears ,LoanOriginalAmount,
+                     method = 'pearson'))
+```
+
+* correlation between EmploymentStatusDurationYears and LoanOriginalAmount 
+is too weak.
+
+
+###3.1.5-  BorrowerRate and LoanOriginalAmount
+```{r  echo=FALSE}
+with(new_df,cor.test(BorrowerRate,LoanOriginalAmount,method = 'pearson'))
+```
+
+>correlation between BorrowerRate is LoanOriginalAmount medium negative , 
+see the following visualization :
+
+```{r  echo=FALSE }
+ggplot(aes(x=BorrowerRate , y=LoanOriginalAmount),
+      data=new_df)+ geom_point(alpha=0.05,position = position_jitter(h=0)
+                               ,color='orange') 
+```
+
+###3.1.6-  ProsperScore and ProsperRating..numeric.
+
+```{r  echo=FALSE }
+with(new_df,cor.test(ProsperScore,ProsperRating..numeric. ,method = 'pearson'))
+
+```
+
+>as you see, strong correlation between  ProsperScore and ProsperRating, see 
+the following visualization.
+
+```{r  echo=FALSE }
+ggplot(aes(x=ProsperRating..numeric. , y=ProsperScore,fill=ProsperScore),data=new_df)+ 
+  geom_tile()+
+  scale_fill_gradientn(colours=colorRampPalette( c('red','yellow'))(100))+
+  geom_point(alpha=0.05,position = position_jitter(h=0), color='blue')+
+  geom_smooth(method = 'lm',color='darkblue')
+```
+
+##3.2-  now for the categorical features:
+
+###3.2.1-  prosper rating and loan status:
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(ProsperRating, fill = LoanStatusGroup)) + 
+  geom_bar(position = "fill")
+
+```
+
+>as a result , HR,E,D ratings have higher prpability of defaulting , in the 
+other hand AA,A,B ratings , have lower proabability of defaulting.
+
+
+###3.2.2-  loan status and term(year)
+
+```{r  echo = FALSE }
+new_df %>% 
+  ggplot(aes(Term/12, fill = LoanStatusGroup)) + 
+  geom_bar(position = "fill")
+
+```
+
+* loans of 1 year term have higher probability of completing.
+
+###3.2.3-  ListingCategory and LoanStatusGroup:
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(ListingCategory, fill = LoanStatusGroup)) + 
+  geom_bar(position = "fill")+coord_flip()
+```
+
+* Green loans , Cosmatics Procedure , Student Use , Business Categories have 
+higher probability of defaulting .
+
+###3.2.4-  EmploymentStatus and LoanStatusGroup
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(EmploymentStatus, fill = LoanStatusGroup)) + 
+  geom_bar(position = "fill")+coord_flip()
+```
+
+* not employeed ,retired empolyment status's have a higher probabaility of 
+defaulting ,on the other hand employed status has low probability of defaulting. 
+
+###3.2.5-  employed status and rating :
+
+```{r  echo=FALSE }
+
+new_df %>% 
+  ggplot(aes(EmploymentStatus, fill = ProsperRating)) + 
+  geom_bar(position = "fill")+coord_flip()
+
+```
+
+* also not employeed status has higher number of HR rating (worst rating).
+
+###3.2.6-  income range and loan status group
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(IncomeRange, fill =LoanStatusGroup )) + 
+  geom_bar(position = "fill")+coord_flip()
+```
+
+```{r  echo=FALSE , fig.width=9}
+
+new_df %>% 
+  ggplot(aes(LoanStatusGroup)) + geom_bar(stat='count')+facet_wrap(~IncomeRange)
+```
+
+```{r  echo=FALSE }
+count(group_by(new_df,IncomeRange))
+```
+
+>The number of borrowers with 0- salary or not employed is too small , although 
+of that , it's not surprisng that theis two categories have higher probability 
+of defaulting . In general , lower salary income leads to higher probability of
+defaulting . Also we can observe that higher salaries have high percentage of 
+current , that means employees with higher salary are increasing in the bank ,
+to ensure that I will explore income range among dates later in this analyisis.
+
+###3.2.7-  Term and income range
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(Term/12, fill =IncomeRange )) + 
+  geom_bar(position = "fill")+scale_x_continuous(breaks = seq(1,5,2))
+```
+
+* their is no big difference between distributions of income ranges among terms.
+
+###3.2.8 -  EmploymentStatusDurationYears and LoanStatusGroup
+
+```{r  echo=FALSE}
+ggplot(aes(x = EmploymentStatusDurationYears), data = new_df) +
+  geom_freqpoly(aes(color = LoanStatusGroup))
+```
+
+* loans have a peak at low emplyment duration of years(at about 2- 3 years).
+And the distribution of loan status groups among the employment status duration
+mostly do the same Behavior.
+
+>now i will extract the year from listingCreationDate to use it in next 
+visualizations.
+
+###3.2.9-  extract year from listing creatio date 
+
+```{r  echo=FALSE }
+
+library(tidyr)
+
+# separate() creates different columns for year,month and day
+
+new_df=separate(data = new_df,col = "ListingCreationDate",into = 
+                  c("year","month"))
+new_df$year=as.numeric(new_df$year)
+
+new_df %>% 
+  ggplot(aes(year)) + 
+  geom_bar(stat = 'count')+scale_x_continuous(breaks = seq(2009,2014,1))
+```
+
+* It is abviously that number of loans increases each year , you see that year 
+2014 is lower than 2013 , this is because the recorded data of 2014 only for the 
+first quarter of the year(first three months only ). This is a goog indicator of
+improving the bank work.
+
+###3.2.10 -  loan status group and years
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(year, fill =LoanStatusGroup )) + 
+  geom_bar(position = "fill")+scale_x_continuous(breaks = seq(2009,2014,1))
+
+```
+
+```{r  echo=FALSE , fig.width=9}
+new_df %>% 
+  ggplot(aes(LoanStatusGroup)) + geom_bar(stat='count')+facet_wrap(~year)
+```
+```{r  echo=FALSE }
+new_df %>% group_by(year) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=year,y=DefaultPercent))+geom_line(stat='summary', fun.y=mean)+
+  geom_smooth(method = 'lm')
+```
+
+>The number of defaulted loans decreases by new years and the current groups 
+increases because they are currently created.
+
+###3.2.11 -  Term and year
+
+```{r  echo=FALSE }
+new_df$Term_str =as.character(new_df$Term)
+
+new_df %>% 
+  ggplot(aes(year, fill =Term_str )) + 
+  geom_bar(position = "fill")+scale_x_continuous(breaks = seq(2009,2014,1))
+```
+
+* In the first years it's abviously that terms of 36 months are dominent, and 
+then the number of loans of 60 month start increasing . On the other hand, loans
+of 12 month have a very small percentage.
+
+###3.2.12-  employment status and years
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(year, fill = EmploymentStatus)) + 
+  geom_bar(position = "fill")+scale_x_continuous(breaks = seq(2009,2014,1))
+```
+
+* Percent of employed status increases instead of full- time status. The difference between full- time and employed is 
+
+###3.2.13-  borrower rate and years
+
+
+```{r  echo=FALSE }
+
+ggplot(aes(factor(year),BorrowerRate),data=new_df)+ 
+  geom_jitter(alpha=1/20,color='orange')+
+  geom_boxplot( alpha = .5,color = 'blue')+ 
+  stat_summary(fun.y = "mean", 
+               geom = "point", 
+               color = "red", 
+               shape = 8, 
+               size = 4)
+```
+
+* the borrower rate in the first years is spare , but in 2013 the rates 
+concentrate about 0.2.To ensure the distribution , I will visualize distribution
+of borrower rate in each year as the following:
+
+```{r  echo=FALSE , fig.height=7 , fig.width=8}
+new_df %>% 
+	ggplot(aes(x=BorrowerRate)) + 
+  geom_histogram(fill='orange', color='red',alpha=0.7,binwidth = 0.012)+
+  facet_wrap(~year,ncol=2)
+```
+* As I said in the previous plot , the number of loans in early years is small
+and increasing toward the years . It is abvious that upon 2012 borrower rate is
+not distributed normally , and In 2013 , 2014 ( first 3 months only ) the 
+distribution is skewed right. 
+
+###3.2.14-  currently in group and years
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(year, fill = CurrentlyInGroup)) + 
+  geom_bar(position = "fill")+scale_x_continuous(breaks=seq(2009,2014,1))
+```
+
+* Number of borrowers are currently in group decreases by the years.
+
+### 3.2.15 -  prosper score with loan status group
+
+```{r  echo=FALSE }
+new_df %>% 
+  ggplot(aes(ProsperScore, fill = LoanStatusGroup)) + 
+  geom_bar(position = "fill")
+```
+
+### 3.2.16 -  BorrowerRate and LoanStatusGroup
+
+```{r  echo=FALSE }
+new_df %>% 
+	ggplot(aes(x=BorrowerRate)) + 
+  geom_histogram(fill='orange', color='red',alpha=0.7,binwidth = 0.012)+
+  facet_wrap(~LoanStatusGroup,ncol=2)
+```
+
+* the borrower rate distribution of defaulted status group is skewed left , 
+that means : higher borrower rate lead to higher probability of defaulting.
+
+### 3.2.17 -  prosper rating with years
+
+```{r  echo=FALSE }
+new_df %>% group_by(year) %>%
+	ggplot(aes(x=year,y=ProsperRating..numeric.))+geom_line(stat='summary', fun.y=mean)+geom_smooth()
+```
+
+*  prosper rating increases  by years.
+
+###3.2.18 -  default percent among employment status
+
+```{r echo=FALSE }
+new_df  %>% group_by(IncomeRange) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=IncomeRange,y=DefaultPercent))+ geom_bar(stat = 'identity')+
+  coord_flip() 
+```
+
+-  You can see that higher income range have higher default percent! 
+
+###3.2.19 -  ProsperRating among income range .
+
+```{r  echo=FALSE , fig.width=10}
+new_df %>%
+	ggplot(aes(x=IncomeRange,y=ProsperRating..numeric.))+ geom_boxplot()
+```
+
+-  again , the lower income ranges have the worst ratings !
+
+### 3.2.20-  IncomeRange vs BorrowerAPR
+
+```{r  echo=FALSE , fig.width=10}
+new_df %>%
+	ggplot(aes(x=IncomeRange,y=BorrowerAPR))+ geom_boxplot()
+
+```
+
+-  the higher income range have lower borrower APR , On the other hand lower 
+income range have higher borrower APR.
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+
+I investigated the relationship between loanStatusGroup (after grouping them in 
+4 general groups, completed, defaulted, past due, current ) and 8 other features
+, as the following : 5 numeric features ( year, EmploymentStatusDurationYears, 
+Term, ProsperScore, BorrowerRate) and 4 categorical features (IncomeRange, 
+EmploymentStatus, ListingCategory,ProsperRating). Also I explored the changing
+of theis features among the years. As a result , the following features have 
+a relationship with the loan status and can be used as a good indicator of 
+defaulting : prosper score , employed status , income range, prosper rating and
+borrower rate.
+
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+
+As in 3.1.2 their is a strong negative relationship between prosperRating and
+borrowerRate with correlation coefitiont of about - 0.95! And as in 3.1.6 , 
+their is a strong positive relationship between  ProsperScore and ProsperRating
+with correlation coefficient of about 0.705 .
+
+### What was the strongest relationship you found?
+for the main features of interest , the strongest relationship is between loan
+status group and prosper score followed by the income range . and for the other
+features , the strongest one is between prosperRating and borrowerRate with 
+correlation coefficient of about - 0.95 .
+
+# 4-   Multivariate Plots Section
+
+## 4.1 -  prosper rating among years with different loan status groups.
+
+```{r echo = FALSE, Multivariate_Plots,fig.height=22,fig.width=12}
+
+new_df %>% 
+	ggplot(aes(x=ProsperRating..numeric.)) +
+  geom_histogram(stat='count',fill='orange', color='red',alpha=0.7,
+                 binwidth = 0.012)+
+  facet_wrap(~year+LoanStatusGroup,ncol=4)
+
+```
+
+>in the previous plot , I ploted prosper rating in combinations of loan status 
+among years , you can see that for most of defaulted plots are skewed right 
+(negative ratings more) and the completed plots skewed left (positive ratings
+more).
+
+## 4.2-  ProsperRating vs ProsperScore behaviour among different years and loan 
+status groups.
+
+```{r  echo=FALSE , fig.width=12 , fig.height=10}
+ggplot(aes(x=ProsperRating..numeric. , y=ProsperScore),
+      data=new_df)+
+  geom_point(alpha=0.05,position = position_jitter(h=0),color='orange')+
+  geom_smooth(method = 'lm')+ facet_wrap(~year+LoanStatusGroup ,ncol=3)
+
+```
+
+>We got the same result of 3.1.6 that concludes that prosper rating and prosper
+score have strong positive relationship.
+
+## 4.3-  prosper rating vs default percent among years.
+
+```{r  echo=FALSE }
+new_df %>% group_by(ProsperRating..numeric.,year) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=ProsperRating..numeric.,y=DefaultPercent))+
+  geom_line(stat='summary', fun.y=mean)+
+  geom_smooth(method = 'lm')+
+  facet_wrap(~year)
+```
+
+* in all years except 2013 and 2014 prosper rating and default percent have 
+strong nagative ralationship , in 2013 and 2014 the relationship is weaker 
+because number of defaulted loans is lower.
+
+### 4.4-  prosper score among years with default percent.
+
+```{r  echo=FALSE }
+new_df %>% group_by(ProsperScore,year) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=ProsperScore,y=DefaultPercent))+geom_line(stat='summary', fun.y=mean)+geom_smooth(method = 'lm')+facet_wrap(~year)
+```
+
+* the result is similar to previous plot , but here default percent decreases 
+with slope slightly higher than in the prosper rating .
+
+### 4.5-  heatmap of ProsperRating in the distribution of prosperScore among 
+years.
+
+```{r  echo=FALSE }
+
+ggplot(aes(y=ProsperScore,x=year,fill=ProsperRating..numeric.),data=new_df)+
+  geom_tile()+
+  scale_fill_gradientn(colours=colorRampPalette( c('red','yellow'))(100))
+```
+
+* this plot ensure that prosper ratings have a strong relation with prosper 
+score , and each of them increases by years. and that a good indicator of 
+improving the bank work.
+
+### 4.6-  heatmap of BorrowerRate in the distribution of prosperScore vs
+ProsperRating .
+
+```{r  echo=FALSE }
+
+ggplot(aes(y=ProsperScore,x=ProsperRating..numeric.,fill=BorrowerRate)
+       ,data=new_df)+
+  geom_tile()+
+  scale_fill_gradientn(colours=colorRampPalette( c('yellow','red'))(100))
+```
+
+* borrowerRate affect prosperRating more than ProsperScore , notice that at high
+prosperRating(>4) the region is yellow that means lower borrower rate .
+
+### 4.7 -  heatmap of dafault percent in the distribution of prosperScore vs 
+prosper rating.
+
+```{r  echo=FALSE }
+new_df %>% group_by(ProsperScore,ProsperRating..numeric.) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=ProsperRating..numeric.,y=ProsperScore,fill=DefaultPercent))+
+  geom_tile()+
+  scale_fill_gradientn(colours = colorRampPalette(c('yellow','red'))(100))
+
+```
+
+* see that for high values of prosper rating and prosper score (especially for 
+prosper rating) the area color is yellow that means low default percent , In the
+other hand low values of prosper rating and prosper score (especially for 
+prosper rating) the area color is red that means high default percent.
+
+#4.8-  default percent heatmap among years.
+
+```{r  echo=FALSE }
+new_df %>% group_by(year) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=year,y=DefaultPercent,fill=DefaultPercent))+
+  geom_tile()+
+  scale_fill_gradientn(colours = colorRampPalette(c('yellow','red'))(100))
+
+```
+
+## 4.9 -  compare heatmaps of default percent in prosperScore among years and 
+prosperRating among years. 
+
+```{r  echo=FALSE, fig.height=5 , fig.width=12}
+score_map<- new_df %>% group_by(ProsperScore,year) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=year,y=ProsperScore,fill=DefaultPercent))+geom_tile()+scale_fill_gradientn(colours = colorRampPalette(c('yellow','red'))(100))
+
+rating_map<- new_df %>% group_by(year,ProsperRating..numeric.) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=year,y=ProsperRating..numeric.,fill=DefaultPercent))+
+  geom_tile()+
+  scale_fill_gradientn(colours = colorRampPalette(c('yellow','red'))(100))
+
+#install.packages('gridExtra')
+library(gridExtra)
+grid.arrange(rating_map,score_map,ncol=2)
+
+```
+
+>You can see that default percent of 2013 and 2014 is too small. And we got the
+same result as we observed in the previous plots for each of prosper score and 
+prosper rating that low prosper scores or low prosper rating means high default
+percent and high values of them lead to low percent of default percent.
+
+### 4.10 -  heatmap of default ratio among income range vs income verifiable.
+
+```{r  echo=FALSE, fig.width=9 ,fig.height=4}
+new_df %>% group_by(IncomeRange,IncomeVerifiable) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=IncomeRange,y=IncomeVerifiable,fill=DefaultPercent))+
+  geom_tile()+
+  scale_fill_gradientn(colours = colorRampPalette(c('yellow','red'))(100))
+```
+
+* It's abvious that the combinantion of IncomeVerifiable with IncomeRange has a 
+high effect at the default percent! In addition to what said previously that low
+income ranges have high percent of defaulting , the false status of 
+IncomeVerifiable also increase the default percent.
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+
+As a result of part 4.6 , I found that loans of high borrower rate (0.3) have a
+low prosper rating and as in 4.7 the low prosper rate has a higher default 
+percent.Also I found that the the number of defaulted loans decreases by years , 
+see 3.2.10 and 4.8 , and if we connect this observation with the borrower rate ,
+we can see that also by years the borrower rates are decreases as in 3.2.13
+and 3.2.16 .
+
+### Were there any interesting or surprising interactions between features?
+
+
+ the combinantion of IncomeVerifiable with IncomeRange has a high effect at the 
+ default percent! In addition to that low income ranges have high percent of 
+ defaulting , the false status of IncomeVerifiable also increase the default 
+ percent.
+- - - - - - 
+
+#5- Final Plots and Summary
+
+###5.1- Plot One: prosper rating and loan status:
+
+```{r  echo=FALSE, Plot_One}
+new_df %>% 
+  ggplot(aes(ProsperRating, fill = LoanStatusGroup)) + 
+  geom_bar(position = "fill")
+
+```
+
+### Description One:
+
+>HR,E,D ratings (worst ratings) have higher prpability of defaulting , in the 
+other hand AA,A,B ratings (best ratings) have lower proabability of defaulting.
+So we can conclude that lower prosper ratings means higher probability of 
+defaulting.
+
+
+### 5.2- Plot Two : heatmap of BorrowerRate in the distribution of prosperScore
+vs ProsperRating .
+
+```{r  echo=FALSE , Plot_Two}
+ggplot(aes(y=ProsperScore,x=ProsperRating..numeric.,fill=BorrowerRate),
+       data=new_df)+
+  geom_tile()+
+  scale_fill_gradientn(colours=colorRampPalette( c('yellow','red'))(100))
+```
+
+### Description Two:
+
+>borrowerRate affect prosperRating more than ProsperScore , notice that at high
+prosperRating(>4) the region is yellow that means lower borrower rate. And each 
+of borrower rate and Prosper rating have a high correlation with the default 
+ratio , so we can say that higher borrower rate means lower prosper rating then
+highr default probability.
+
+### 5.3- Plot Three : heatmap of default ratio among income range vs income 
+verifiable.
+
+```{r  echo=FALSE, fig.width=9 ,fig.height=4, Plot_Three}
+new_df %>% group_by(IncomeRange,IncomeVerifiable) %>%
+	summarise(DefaultPercent = mean(LoanStatusGroup == "Defaulted")) %>%
+	ggplot(aes(x=IncomeRange,y=IncomeVerifiable,fill=DefaultPercent))+
+  geom_tile()+
+  scale_fill_gradientn(colours = colorRampPalette(c('yellow','red'))(100))
+```
+
+### Description Three
+
+>It's abvious that the combinantion of IncomeVerifiable with IncomeRange has a
+high effect at the default percent! In addition to that income ranges have high
+percent of defaulting , the false status of IncomeVerifiable also increase the 
+default percent.
+
+- - - - - - 
+
+# 6- Reflection
+- Struggle in this work is in understanding and cleaning data step , their is a 
+lot of banks keywords that I don't listen before , so I took about 2 days only 
+for understanding the the proposed features and select the key ones to 
+investigate them , I think this is the most important step of any analysis work.
+
+- I felt with Success when the relations and interactions of featuers started to
+appear.
+
+- After finishing the previous analysis I found many features that affect 
+defaulting the loans, we can take care to them to improve the bank work by 
+reduce the default percent. Theis features includes IncomeRange , 
+IncomeVerifiable ,ProsperRating , ProsperScore , BorrowerRate , in the following
+more details about most influence ones: 
+
+1. IncomeRange: It has a high influence on default loan status , we can say that
+lower income ranges or not employed status have a higher probability of 
+defaulting. On the other hand , higher income ranges have lower probability 
+of defaulting.
+
+2. ProsperRating: It has a high influence on default loan status , we can say 
+that lower ProsperRating(HR,E,D) have a higher probability of defaulting. On the
+other hand , higher ProsperRatings(A,AA,B) have lower probability of defaulting.
+
+3. BorrowerRate: It has a high influence on default loan status , we can say 
+that higher BorrowerRates leads to lower prosper rating and a higher probability
+of defaulting. On the other hand , lower borrowerRates have ahigher 
+prosperRating and lower probability of defaulting.
+
+4. IncomeVerifiable: It has a high influence on default loan status , we can say
+that loans in the True IncomeVerifiable group have a lower probability of 
+defaulting. On the other hand , loans in the False IncomeVerifiable group have
+a higher probability of defaulting.
+
+- We can see clearly that number of loans increases by years in addition to that
+percent of defaulted loans is decreases , and this is a good indicator of 
+improving the bank work. And to improve thebank work more and more they can take
+care to the listed features in the previous step.
+
+#7- References:
+
+1. udacity videos , lectures and other resources.
+2. R documentation.
+3. https://www.quora.com/How-do-I-extract-month-and-year-from-date-in-R
+4. https://dplyr.tidyverse.org/reference/recode.html
